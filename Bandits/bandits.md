@@ -1,8 +1,9 @@
 # Multi-armed bandit app — spec / prompt
 
-Goal: implement a small experiment app for a 3-armed bandit problem using epsilon-greedy with decay, with both manual and agent-driven interaction via a Tkinter GUI.
+## Goal
+- implement a small experiment app for a 3-armed bandit problem using epsilon-greedy with decay, with both manual and agent-driven interaction via a Tkinter GUI.
 
-Files to create
+## Files to create
 - `bandits_app.py` — entrypoint: imports logic and GUI, starts the UI.
 - `bandit_logic.py` — core classes and functions:
   - `OpenArmedBandit` class
@@ -21,11 +22,12 @@ Files to create
   - `ThompsonSamplingPolicy` class
     - extract "Thompson Sampling (Bayesian Bandits)" logic into class and let the agent use this class    
   - Keep logic independent of GUI; provide small helper functions to run a single agent step or many steps.
-App: `bandits_app.py`
-- Imports `OpenArmedBandit` and `Agent` from `bandit_logic`.
-- Initialize three bandits with configurable true probabilities (defaults e.g. [0.2, 0.5, 0.8]).
-- Inject bandits and agent into gui, then start the gui.
-GUI: `bandit_gui.py` (Tkinter)
+- `bandits_app.py`
+  - Imports `OpenArmedBandit` as environment and `Agent` from `bandit_logic`.
+  - Initialize three bandits with configurable true probabilities (defaults e.g. [0.2, 0.5, 0.8]).
+  - Inject bandits and agent into gui, then start the gui.
+
+## GUI: `bandit_gui.py` (Tkinter)
 - Layout:
   - Controls:
     - Entry for "Agent loops (n)" — integer.
@@ -36,12 +38,14 @@ GUI: `bandit_gui.py` (Tkinter)
     - Button "Agent: run n loops" — run configured n loops.
     - Dropdown "Method" to select epsilon greedy or thompson samling and let the agent know, which method to pick.
     - Optional: button "Reset" to restart counts.
+
   - Displays:
     - Live cumulative reward plot.
       - Use two different colors for each method within plot, to compare both methods
       - Add a legend for methods to plot
     - Summary table/text: total loops, for each bandit show total pulls, total reward (successes), and success rate.
     - (Optional) Small plot or list of cumulative reward over time (matplotlib embed is acceptable).
+
 - Behavior:
   - Manual button: performs a pull on selected bandit, updates counts and GUI.
   - Agent single: uses current Agent instance to select_action(), pulls chosen bandit, calls agent.update(), decays epsilon, update GUI.
@@ -50,7 +54,7 @@ GUI: `bandit_gui.py` (Tkinter)
   - Switching methods means recreate agent and reset values, but let the last plot intact.
   - Ensure GUI is responsive (use after() or run agent loops in short batches if needed).
 
-Metrics & output
+## Metrics & output
 - Cumulative reward over all pulls (displayed prominently).
   - 
 - Summary showing:
@@ -59,16 +63,16 @@ Metrics & output
   - Bandit2: pulls / total reward / success rate.
   - Bandit3: pulls / total reward / success rate.
 
-Usage
+## Usage
 - Run with: `python bandits_app.py`
 - bandits_app should create bandit objects, create an Agent with default params, and start the Tkinter GUI.
 
-Implementation notes
+## Implementation notes
 - Use Bernoulli rewards (0/1) so success rate is clear.
 - Agent memory: maintain per-arm deque of most recent rewards (size = memory) or full history if memory == 0.
 - Epsilon decay: multiply epsilon by `decay` after each agent action (document choice).
 - Keep separation between logic and UI: GUI imports and calls methods but does not implement learning logic.
 
-End.
+# End.
 
 
