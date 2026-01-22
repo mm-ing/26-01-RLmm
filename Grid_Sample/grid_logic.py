@@ -69,7 +69,7 @@ class GridWorld:
         self.state = nxt
         self.steps += 1
         done = (nxt == self.goal) or (self.steps >= self.max_steps)
-        reward = 0.0 if nxt == self.goal else -1.0
+        reward = -1.0
         return nxt, reward, done, {}
 
     def available_actions(self) -> List[Action]:
