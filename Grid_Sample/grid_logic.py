@@ -251,8 +251,9 @@ class ExpSarsaPolicies(BasePolicy, EpsilonGreedyMixin):
 class MonteCarloPolicies(BasePolicy, EpsilonGreedyMixin):
     name = "Monte Carlo"
 
-    def __init__(self, n_actions: int = 4, epsilon_min: float = 0.05):
+    def __init__(self, n_actions: int = 4, gamma: float = 0.9, epsilon_min: float = 0.05):
         self.n_actions = n_actions
+        self.gamma = gamma
         self.epsilon_min = epsilon_min
         self.epsilon = 1.0
         self.returns_sum: Dict[Tuple[State, Action], float] = {}
@@ -271,12 +272,12 @@ class MonteCarloPolicies(BasePolicy, EpsilonGreedyMixin):
         return self._epsilon_greedy(self.q[state], available_actions, self.epsilon)
 
     def end_episode(self, trajectory: List[Dict]):
-        # every-visit MC on-policy
+        # every-visit MC on-policy with discounted returns
         G = 0.0
         for t in reversed(range(len(trajectory))):
             step = trajectory[t]
             state, action, reward = step["state"], step["action"], step["reward"]
-            G += reward
+            G = reward + self.gamma * G
             key = (state, action)
             self.returns_sum[key] = self.returns_sum.get(key, 0.0) + G
             self.returns_count[key] = self.returns_count.get(key, 0) + 1

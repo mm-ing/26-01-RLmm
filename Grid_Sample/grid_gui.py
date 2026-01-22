@@ -176,7 +176,7 @@ class GridGUI:
         eps_max = float(self.eps_max_var.get())
         eps_min = float(self.eps_min_var.get())
         self.policies = [
-            MonteCarloPolicies(epsilon_min=eps_min),
+            MonteCarloPolicies(gamma=gamma, epsilon_min=eps_min),
             SarsaPolicies(alpha=alpha, gamma=gamma, epsilon_max=eps_max, epsilon_min=eps_min),
             ExpSarsaPolicies(alpha=alpha, gamma=gamma, epsilon_max=eps_max, epsilon_min=eps_min),
             QlearningPolicies(alpha=alpha, gamma=gamma, epsilon_max=eps_max, epsilon_min=eps_min),

@@ -14,7 +14,7 @@ from grid_logic import (
 def main():
     env = GridWorld()
     policies = [
-        MonteCarloPolicies(),
+        MonteCarloPolicies(gamma=0.9),
         SarsaPolicies(),
         ExpSarsaPolicies(),
         QlearningPolicies(),
