@@ -9,11 +9,22 @@ import gymnasium as gym
 import numpy as np
 
 
-class CliffWalkingEnv:
-    def __init__(self, seed: Optional[int] = None, render_mode: Optional[str] = None, is_slippery: bool = False, slip_prob: float = 0.2):
-        self.env = gym.make("CliffWalking-v1", render_mode=render_mode)
+class FrozenLakeEnv:
+    def __init__(
+        self,
+        map_name: str = "4x4",
+        is_slippery: bool = False,
+        seed: Optional[int] = None,
+        render_mode: Optional[str] = None,
+    ):
+        self.map_name = map_name
         self.is_slippery = bool(is_slippery)
-        self.slip_prob = float(slip_prob)
+        self.env = gym.make(
+            "FrozenLake-v1",
+            map_name=self.map_name,
+            is_slippery=self.is_slippery,
+            render_mode=render_mode,
+        )
         if seed is not None:
             self.env.reset(seed=seed)
 
@@ -27,14 +38,12 @@ class CliffWalkingEnv:
 
     def reset(self):
         obs, _info = self.env.reset()
-        return obs
+        return int(obs)
 
     def step(self, action: int):
-        if self.is_slippery and random.random() < self.slip_prob:
-            action = random.randrange(self.action_space.n)
-        obs, reward, terminated, truncated, info = self.env.step(action)
+        obs, reward, terminated, truncated, info = self.env.step(int(action))
         done = terminated or truncated
-        return obs, float(reward), done, info
+        return int(obs), float(reward), bool(done), info
 
     def render(self):
         return self.env.render()
@@ -60,13 +69,22 @@ class EpsilonSchedule:
 class BasePolicy:
     name: str = "Base"
 
-    def __init__(self, n_states: int, n_actions: int, alpha: float, gamma: float, eps_start: float, eps_end: float, total_episodes: int):
+    def __init__(
+        self,
+        n_states: int,
+        n_actions: int,
+        alpha: float,
+        gamma: float,
+        eps_start: float,
+        eps_end: float,
+        total_episodes: int,
+    ):
         self.n_states = n_states
         self.n_actions = n_actions
         self.alpha = float(alpha)
         self.gamma = float(gamma)
         self.schedule = EpsilonSchedule(eps_start, eps_end, total_episodes)
-        self.epsilon = eps_start
+        self.epsilon = float(eps_start)
         self.q = np.zeros((n_states, n_actions), dtype=np.float32)
 
     def start_episode(self, episode_idx: int):
@@ -100,7 +118,7 @@ class SarsaPolicy(BasePolicy):
     name = "SARSA"
 
     def update(self, state: int, action: int, reward: float, next_state: int, done: bool, **kwargs):
-        next_action = kwargs.get("next_action", 0)
+        next_action = int(kwargs.get("next_action", 0))
         next_q = 0.0 if done else float(self.q[next_state, next_action])
         target = reward + self.gamma * next_q
         td = target - self.q[state, action]
@@ -127,7 +145,7 @@ class ExpectedSarsaPolicy(BasePolicy):
 
 
 class Agent:
-    def __init__(self, env: CliffWalkingEnv, policy: BasePolicy):
+    def __init__(self, env: FrozenLakeEnv, policy: BasePolicy):
         self.env = env
         self.policy = policy
 
@@ -145,13 +163,13 @@ class Agent:
         state = int(self.env.reset())
         total = 0.0
         steps = 0
+
         if isinstance(self.policy, SarsaPolicy):
             action = self.policy.select_action(state)
             while steps < max_steps:
                 if stop_event is not None and stop_event.is_set():
                     break
                 next_state, reward, done, _ = self.env.step(action)
-                next_state = int(next_state)
                 next_action = self.policy.select_action(next_state) if not done else 0
                 self.policy.update(state, action, reward, next_state, done, next_action=next_action)
                 total += reward
@@ -169,7 +187,6 @@ class Agent:
                     break
                 action = self.policy.select_action(state)
                 next_state, reward, done, _ = self.env.step(action)
-                next_state = int(next_state)
                 self.policy.update(state, action, reward, next_state, done)
                 total += reward
                 steps += 1

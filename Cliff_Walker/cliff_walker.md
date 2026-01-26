@@ -4,6 +4,7 @@
 ## Very important: 
 - !!! use `..\rl_init.md` for inital requirements !!!
 
-## Features
+## Additional Features
 - Selectable methods: q-learning, sarsa, expected sarsa
+- Selectable slippery: IsSlippery (default false)
 

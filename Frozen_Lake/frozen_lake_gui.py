@@ -6,14 +6,14 @@ from typing import Dict, List, Optional
 
 import numpy as np
 from PIL import Image, ImageTk
-from tkinter import ttk, filedialog
+from tkinter import filedialog, ttk
 import tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
-from cliff_walker_logic import (
+from frozen_lake_logic import (
     Agent,
-    CliffWalkingEnv,
+    FrozenLakeEnv,
     QLearningPolicy,
     SarsaPolicy,
     ExpectedSarsaPolicy,
@@ -28,10 +28,13 @@ class MethodConfig:
     color_bold: str
 
 
-class CliffWalkerGUI:
-    def __init__(self, master: tk.Tk):
+class FrozenLakeGUI:
+    def __init__(self, master: tk.Tk, env: FrozenLakeEnv, agent: Agent, policies: List):
         self.master = master
-        self.master.title("CliffWalking RL Demo")
+        self.env = env
+        self.agent = agent
+        self.policies = policies
+        self.master.title("FrozenLake RL Demo")
 
         self.methods = [
             MethodConfig("Q-learning", QLearningPolicy, "#ffb3b3", "#ff4d4d"),
@@ -67,36 +70,40 @@ class CliffWalkerGUI:
         self.render_canvas = tk.Canvas(top_frame, width=600, height=200, bg="black")
         self.render_canvas.pack(fill="both", expand=True)
 
-        ttk.Label(control_frame, text="Episodes").grid(row=0, column=0, sticky="w")
-        self.episodes_var = tk.IntVar(value=1000)
-        ttk.Entry(control_frame, textvariable=self.episodes_var, width=8).grid(row=0, column=1)
-
-        ttk.Label(control_frame, text="Alpha").grid(row=1, column=0, sticky="w")
-        self.alpha_var = tk.DoubleVar(value=0.2)
-        ttk.Entry(control_frame, textvariable=self.alpha_var, width=8).grid(row=1, column=1)
-
-        ttk.Label(control_frame, text="Gamma").grid(row=2, column=0, sticky="w")
-        self.gamma_var = tk.DoubleVar(value=0.8)
-        ttk.Entry(control_frame, textvariable=self.gamma_var, width=8).grid(row=2, column=1)
-
-        ttk.Label(control_frame, text="Epsilon start").grid(row=3, column=0, sticky="w")
-        self.eps_start_var = tk.DoubleVar(value=1.0)
-        ttk.Entry(control_frame, textvariable=self.eps_start_var, width=8).grid(row=3, column=1)
-
-        ttk.Label(control_frame, text="Epsilon end").grid(row=4, column=0, sticky="w")
-        self.eps_end_var = tk.DoubleVar(value=0.05)
-        ttk.Entry(control_frame, textvariable=self.eps_end_var, width=8).grid(row=4, column=1)
+        ttk.Label(control_frame, text="Map name").grid(row=0, column=0, sticky="w")
+        self.map_var = tk.StringVar(value="4x4")
+        ttk.Combobox(control_frame, values=["4x4", "8x8"], textvariable=self.map_var, state="readonly").grid(row=0, column=1)
 
         self.slippery_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(control_frame, text="Is Slippery", variable=self.slippery_var).grid(row=5, column=0, columnspan=2, sticky="w")
+        ttk.Checkbutton(control_frame, text="Is Slippery", variable=self.slippery_var).grid(row=1, column=0, columnspan=2, sticky="w")
 
-        ttk.Label(control_frame, text="Step delay (s)").grid(row=6, column=0, sticky="w")
+        ttk.Label(control_frame, text="Episodes").grid(row=2, column=0, sticky="w")
+        self.episodes_var = tk.IntVar(value=1000)
+        ttk.Entry(control_frame, textvariable=self.episodes_var, width=8).grid(row=2, column=1)
+
+        ttk.Label(control_frame, text="Alpha").grid(row=3, column=0, sticky="w")
+        self.alpha_var = tk.DoubleVar(value=0.2)
+        ttk.Entry(control_frame, textvariable=self.alpha_var, width=8).grid(row=3, column=1)
+
+        ttk.Label(control_frame, text="Gamma").grid(row=4, column=0, sticky="w")
+        self.gamma_var = tk.DoubleVar(value=0.8)
+        ttk.Entry(control_frame, textvariable=self.gamma_var, width=8).grid(row=4, column=1)
+
+        ttk.Label(control_frame, text="Epsilon start").grid(row=5, column=0, sticky="w")
+        self.eps_start_var = tk.DoubleVar(value=1.0)
+        ttk.Entry(control_frame, textvariable=self.eps_start_var, width=8).grid(row=5, column=1)
+
+        ttk.Label(control_frame, text="Epsilon end").grid(row=6, column=0, sticky="w")
+        self.eps_end_var = tk.DoubleVar(value=0.05)
+        ttk.Entry(control_frame, textvariable=self.eps_end_var, width=8).grid(row=6, column=1)
+
+        ttk.Label(control_frame, text="Step delay (s)").grid(row=7, column=0, sticky="w")
         self.step_delay_var = tk.DoubleVar(value=0.0)
-        ttk.Entry(control_frame, textvariable=self.step_delay_var, width=8).grid(row=6, column=1)
+        ttk.Entry(control_frame, textvariable=self.step_delay_var, width=8).grid(row=7, column=1)
 
-        ttk.Label(control_frame, text="Max steps").grid(row=7, column=0, sticky="w")
+        ttk.Label(control_frame, text="Max steps").grid(row=8, column=0, sticky="w")
         self.max_steps_var = tk.IntVar(value=200)
-        ttk.Entry(control_frame, textvariable=self.max_steps_var, width=8).grid(row=7, column=1)
+        ttk.Entry(control_frame, textvariable=self.max_steps_var, width=8).grid(row=8, column=1)
 
         ttk.Label(control_frame, text="Methods").grid(row=0, column=2, sticky="w", padx=(12, 0))
         row_idx = 1
@@ -175,11 +182,11 @@ class CliffWalkerGUI:
             vals = self.returns_by_method.get(name, [])
             if not vals:
                 continue
-            self.ax.plot(vals, color=m.color_light, lw=1, alpha=0.6, zorder=1, label=f"{name} returns")
+            self.ax.plot(vals, color=m.color_light, lw=1, label=f"{name} returns")
             ma = self._moving_average(vals)
             if ma:
                 x = list(range(len(vals) - len(ma), len(vals)))
-                self.ax.plot(x, ma, color=m.color_bold, lw=2, zorder=3, label=f"{name} avg")
+                self.ax.plot(x, ma, color=m.color_bold, lw=2, label=f"{name} avg")
         self.ax.set_title("Episode Returns")
         self.ax.set_xlabel("Episode")
         self.ax.set_ylabel("Return")
@@ -191,6 +198,9 @@ class CliffWalkerGUI:
         if not selected:
             self.status_var.set("Select at least one method")
             return
+
+        if not self.compare_methods.get():
+            selected = selected[:1]
 
         self.cancel_learning()
         self.returns_by_method = {name: [] for name in selected}
@@ -222,10 +232,11 @@ class CliffWalkerGUI:
         eps_end = float(self.eps_end_var.get())
         step_delay = float(self.step_delay_var.get())
         max_steps = int(self.max_steps_var.get())
+        map_name = self.map_var.get()
         is_slippery = bool(self.slippery_var.get())
 
         render_mode = "rgb_array" if enable_render else None
-        env = CliffWalkingEnv(render_mode=render_mode, is_slippery=is_slippery)
+        env = FrozenLakeEnv(map_name=map_name, is_slippery=is_slippery, render_mode=render_mode)
         n_states = env.observation_space.n
         n_actions = env.action_space.n
 
@@ -239,6 +250,7 @@ class CliffWalkerGUI:
         agent = Agent(env, policy)
 
         last_frame_time = 0.0
+
         def render_cb(frame):
             nonlocal last_frame_time
             now = time.monotonic()
