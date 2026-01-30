@@ -5,5 +5,5 @@
 - !!! use `..\rl_init.md` for inital requirements !!!
 
 ## Additional Features
-- Selectable methods: q-learning, sarsa, expected sarsa
-- Selectable raining: IsRaining (default false)
+- Selectable methods (dropdown): q-learning, sarsa, expected sarsa
+- Selectable raining (checkbox): IsRaining (default false)

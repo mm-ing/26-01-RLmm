@@ -10,17 +10,48 @@
 - `requirements.txt`: This requirements
 
 ## Inital Features
-- Show gym animation at top of ui and let it run live for learning
-- Make required methods selectable and add a compare check to show live reward plots of all selectable methods
-- Show editable episodes (default 1000), alpha (default 0.2), gamma (default 0.8), epsilon-start (default 1.0), epsilon-end (default 0.05), step-delay (default 0.0)
-- Create Button: Train and run
+
+### GUI
+- Use darkmode theme for tkinter ui
+- Use grid with 3 columns for user inputs
+
+### Animation (environment)
+- Show gym animation at top of ui and let it run live for the current selected method or during comare-mode for the latest method.
+- All special params for selected animation should be visible and editable.
+- Create Button for enabling, diabling animation
+- !!!Let agent use the environment (animation) and its rewards to learn with the selected methods!!!
+
+### Learning Methods
+- Make required methods selectable (dropdown) and add a compare check (checkbox) to show all methods parallel in live plot
+- All common parameters of selected methods should be visible and editable
+- All special parameters of selected method should be visible and editable, 
+- In compare-mode all special parameters of each method should be visible and editable
+- Make methods for compare mode selectable
+- !!!Avoid loops, prefer numpy!!!
+- Let be replay buffer numpy arrays if available
+- !!!assure agent reach every method and can learn from method!!!
+
+### Neural Networks
+- !!! Use Pytorch for neural networks !!!
+
+- All common parameters of neural networks of selected method should be visible and editable
+- All special parameters of neural networks of selected method should be visible and editable
+- In compare-mode all special parameters of neural networks of each method should be visible and editable
+- Create Button: Reset, train and run
 - Create Button: Cancel learning
-- Show live reward plots of each method with reward per episode (light color, z-order: into background) and moving average (bold color into z-order: into foreground) with different colors for each method
+
+### Live Plot
+- !!! Use matplotlib for plots !!!
+- place legend allways upper left
+- Use darkmode for plots
+- Show reward plots live to each developing method with reward per episode (light color, z-order: into background for every method) and moving average (bold color into z-order: into foreground for every method, latest method most foreground) with different colors for each method
 - Create Button: Save plot (to image) to save the current plots to image into current folder
 
 ## Threading
-- Different methods run in separate threads
+- Run different methods in separate threads
+- On compare mode run method threads parallel and show live on plot
 - Non-blocking GUI during automatic pathfinding
+- Show animation of current or latest selected method
 - Safe thread communication with tkinter and gym
 
 ## Tests
