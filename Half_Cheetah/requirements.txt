@@ -1,0 +1,6 @@
+gymnasium[mujoco]
+torch
+numpy
+matplotlib
+Pillow
+opencv-python

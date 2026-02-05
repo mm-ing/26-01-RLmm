@@ -9,21 +9,33 @@
 - `README.md`: This documentation file
 - `requirements.txt`: This requirements
 
-## Inital Features
+## Features:
+- Compare mode for multiple algorithms
+- Compare mode for single algorithm with different values of parameters.
+- Run single algorithm in a loop with all values of given span value-from, value-to and step.
+- Environment parameter configuration
+- Neural network parameter configuration
+- Animation support (optional rendering)
+- Comprehensive unit tests 
 
 ### GUI
-- Use darkmode theme for tkinter ui
+- Dark-themed Tkinter GUI
 - For user input use grid with 3 columns
+- Create Button: Reset
+- Create Button: Train
+- Create Button: Cancel learning
+- Create Button: Save plot (to image) to save the current plots to image into current folder
 
 ### Animation (environment)
-- Show environment (animation) at `top of ui` and let it run live for the current selected method or during comare-mode for the latest method.
+- Show small environment (animation) at `top of ui` and let it run live for the current selected method or during comare-mode for the latest method.
 - All special params for selected animation should be visible and editable.
-- Create Button for enabling, diabling animation
 - !!!Let agent use the environment (animation) and its rewards to learn with the selected methods!!!
+- OpenCV for environment rendering
+- Create Button for enabling, disabling animation
 
 ### Learning Methods
 - Make required methods selectable (dropdown) and add a compare check (checkbox) to show all methods parallel in live plot
-- !!!All common parameters of selected methods should be visible and editable!!!
+- !!! All common parameters of selected methods should be visible and editable!!!
 - !!! All special parameters of selected method should be visible and editable!!! 
 - !!! In compare-mode all special parameters of each method should be visible and editable!!!
 - For user input use grid with 3 columns
@@ -31,29 +43,30 @@
 - Possibility to pause single method in compare mode
 
 ### Learning
-- !!!assure agent reach every method!!!
-- !!!Make sure that environment, agent work together!!!
-- !!!Make sure that agent work together with the current method and makes learning progress!!!
+- !!! Make sure agents can reach every method!!!
+- !!! Make sure that environment and agent work together!!!
+- !!! Make sure that agent work together with the current method and makes learning progress!!!
 
 ### Neural Networks
-- !!! Use Pytorch for neural networks !!!
+- !!!Use PyTorch-based neural networks (selectable MLP/CNN architecture)!!!
+- Thread-safe training with proper locking
+- Non-blocking GUI during training
 - !!!Avoid loops, prefer numpy!!!
 - Use numpy arrays if possible
-- Show plot at `bottom of ui`
-- Make Activation Methods selectable
-- Kind of network selectable (i.e. MLP, CNN, ...)
-- All common parameters of neural networks of selected method should be visible and editable
+- Make Activation Methods (relu, tanh ...) selectable
+- All common parameters of neural networks of the different algorithms should be visible and editable
 - Show special parameters of neural networks of selected method and make editable
-- Create Button: Reset
-- Create Button: Train
-- Create Button: Cancel learning
+
 
 ### Live Plot
-- !!! Use matplotlib for plots !!!
-- place legend allways lower left
-- Use darkmode for plots
+- Use Matplotlib integration for live plotting
+- Height of plot should be useful to compare rewards
+- Live reward plotting with moving averages
+- Place plot at bottom of gui in full gui width
+- Place legend allways lower left
+- Dark-themed plots
 - Show reward plots live to each developing method with reward per episode (light color, z-order: into background for every method) and moving average (bold color into z-order: into foreground for every method, latest method most foreground) with different colors for each method
-- Create Button: Save plot (to image) to save the current plots to image into current folder
+
 
 ### Threading
 - Run different methods in separate threads
