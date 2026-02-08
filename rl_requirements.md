@@ -1,4 +1,4 @@
-# RL example with Tkinter GUI
+# RL requirements
 
 ## Files to create
 - use required RL methods
@@ -9,7 +9,7 @@
 - `README.md`: This documentation file
 - `requirements.txt`: This requirements
 
-## Features:
+## Main Features
 - Animation support and optional rendering and environment parameter configuration in the animation section
 - For each method a tab with configurable all algorithm specific parameters and all neural network related parameters.
 - A live grid with selectable methods and selectable animation.
@@ -35,7 +35,7 @@
 - Split GUI into 2 horizontal parts in relation 2 (upper) to 1 (lower)
 #### Middle Section Upper
 - Upper part contains tab control with tab for each requested algorithm.
-- A Tab should contain all editable parameters of the algorithm and its dependent neural networks.
+- A Tab should contain all editable parameters of the algorithm and its dependent neural networks parameter configuration
 #### Middle Section Lower (live Grid)
 - Lower part contains a grid with selections and live parameters
 ##### Grid Columns
@@ -47,19 +47,17 @@
 - Moving Average Reward (from running method)
 - Reward (current reward)
 - Duration (required time for all episodes of this method)
-- Pause/Resume (button: current method stops working, starts working again)
 - Animation (radio checkbox for witch method the animation should be visible, only on is selectable)
 
 ### Bottom Section (Plot)
 #### Frame with buttons
 - Create Button: Reset
 - Create Button: Train
-- Create Button: Cancel all learning (cancels all training)
+- Create Button: Cancel learning
 - Create Button: Save plot (to image) to save the current plots to image into current folder (use method name plus value name if value exists)
 - Reward plot across the entire width
 
-#### Live Plot
-- See GUI bottom section
+#### Plot
 - Use Matplotlib integration for live plotting
 - Dark-themed plots
 - Place legend allways lower left
@@ -69,26 +67,22 @@
 - with moving average (bold color into z-order: into foreground for every method, latest method most foreground)
 
 
-### Animation (environment)
-- Show small environment (animation) see GUI top section and let it run live for the in grid selected method.
-- Environment parameter configuration: all special params for selected animation should be visible and editable see GUI top section.
-- !!!Let agent use the environment (animation) and its rewards to learn with the selected methods!!!
-- OpenCV for environment rendering
+## Algorithms
+- Generate a tab for each requested algorithm (method)
+- Search for all editable parameters of the algorithm and all editable parameters of the corresponding neural network and place them into the tab. 
 
+### Scalable Method params:
+- For the requested scalable method parameters replace value field with value-from, value-to and step, where value-from contains default value first.
+- If the field value-to and step is filled, create a plot with method name and current value of this field and loop through the requested values.
 
 ### Learning Methods
-- Make required methods selectable (dropdown) and add a compare check (checkbox) to show all methods parallel in live plot
-- !!! All common parameters of selected methods should be visible and editable!!!
-- !!! All special parameters of selected method should be visible and editable!!! 
-- !!! In compare-mode all special parameters of each method should be visible and editable!!!
 - For user input use grid with 3 columns
 - Make single method for compare mode selectable
 - Possibility to pause single method in compare mode
 
-### Learning
-- !!! Make sure agents can reach every method!!!
-- !!! Make sure that environment and agent work together!!!
-- !!! Make sure that agent work together with the current method and makes learning progress!!!
+
+## Animation
+
 
 ### Neural Networks
 - !!!Use PyTorch-based neural networks (selectable MLP/CNN architecture)!!!
@@ -96,11 +90,15 @@
 - Non-blocking GUI during training
 - !!!Avoid loops, prefer numpy!!!
 - Use numpy arrays if possible
+- Neural network parameter configuration see GUI middle section upper part.
 - Make Activation Methods (relu, tanh ...) selectable
-- All common parameters of neural networks of the different algorithms should be visible and editable
-- Show special parameters of neural networks of selected method and make editable
 
-### Threading
+### Learning
+- !!! Make sure agents can reach every method!!!
+- !!! Make sure that environment and agent work together!!!
+- !!! Make sure that agent work together with the current method and makes learning progress!!!
+
+## Threading
 - Run different methods in separate threads
 - On compare mode run method threads parallel and show live on plot
 - Non-blocking GUI during automatic pathfinding
@@ -108,5 +106,5 @@
 - Safe thread communication with tkinter and gym
 
 ## Tests
-- Create tests for each method
+- Create and numerate tests for each method
 - fix program until agent get rewards and learns with methods
