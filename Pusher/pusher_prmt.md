@@ -41,9 +41,9 @@ Follow the exact layout, threading, plotting, and live-grid behavior defined in 
 - Agents can reach every method and learn using the environment.
 
 ## Technical Constraints
-- Use PyTorch-based MLP/CNN networks with selectable activations.
-- Prefer numpy over explicit loops where possible.
+- Use PyTorch-based neural networks (selectable MLP/CNN architecture).
 - Thread-safe training and GUI updates.
+- Prefer numpy over explicit loops where possible.
 - OpenCV rendering for the environment animation.
 
 ## Tests

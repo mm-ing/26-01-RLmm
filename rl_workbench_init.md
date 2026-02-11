@@ -32,23 +32,40 @@
 - Right part show animation editable specific settings
 
 ### Middle Section (Controls)
-- Split GUI into 2 horizontal parts in relation 2 (upper) to 1 (lower)
-#### Middle Section Upper
-- Upper part contains tab control with tab for each requested algorithm.
-- A Tab should contain all editable parameters of the algorithm and its dependent neural networks.
-#### Middle Section Lower (live Grid)
+- Split GUI into 2 equal horizontal parts in relation 2 (upper) to 1 (lower)
+#### Middle Section Upper (Method Control)
+- Upper part contains a `Tab Control` with a tab for each requested algorithm.
+- A tab should contain all editable parameters of the algorithm and its dependent neural networks.
+#### Middle Section Lower (live Control Grid)
 - Lower part contains a grid with selections and live parameters
-##### Grid Columns
-- IsActive (checkbox for selected method)
-- Selected method name
-- Current tested value (value of selected parameter for comparison, none if none selected)
-- Episode/Total Episodes (current running episode of total episodes)
-- Step (current step of current episode) 
-- Moving Average Reward (from running method)
-- Reward (current reward)
-- Duration (required time for all episodes of this method)
-- Pause/Resume (button: current method stops working, starts working again)
-- Animation (radio checkbox for witch method the animation should be visible, only on is selectable)
+##### Grid Columns (live Grid Control)
+- !!! Method-Comparison: insert into the grid a new row for each selectable method !!!
+- !!! Parameter-Comparison: if a parameter of a method contains a value-from (default value), value-to and step field and value-to and step is not empty, then create a new row in grid control with method name, parameter name and parameter values for value-from, each value between value-from and value-to dependent to step and value-to !!!
+- ! Only one parameter can be tested at once!
+###### Columns
+- IsActive (rows are checkboxes)
+- Selected method (rows are names)
+- Current tested parameter (rows are names)
+- Current tested value (rows are variant values)
+- Episode/Total Episodes (rows are numeric/numeric)
+- Step (rows are numeric)
+- Reward (rows are numeric)
+- Moving Average Reward (rows are numeric)
+- Duration (rows are hh:mm:ss)
+- Pause/Resume (rows are buttons)
+- Animation (rows are radio buttons)
+###### Rows
+- IsActive (checkbox): if checked, method of this row has to be integrated into training process, otherwise skip it.
+- Selected method name: show name from each selectable method
+- Current tested parameter: show parameter if a parameter comparison is setted the name of this parameter has to be inserted here otherwise empty.
+- Current tested value: show value if a parameter comparison is setted the current value of the selected parameter for comparison has to be inserted otherwise empty
+- Episode/Total Episodes: show current running episode of total episodes
+- Step: show current step of current episode 
+- Reward: show current reward during training
+- Moving Average Reward: show moving average during training
+- Duration: show required accumulated time for current episodes of this method
+- Pause/Resume: if pressed during training, method of this row stops working. Pressing again means working starts again from latest rewards.
+- Animation: the animation can be active for only one animation. If checked the animation should be visible otherwise not visible
 
 ### Bottom Section (Plot)
 #### Frame with buttons
@@ -70,25 +87,26 @@
 
 
 ### Animation (environment)
-- Show small environment (animation) see GUI top section and let it run live for the in grid selected method.
-- Environment parameter configuration: all special params for selected animation should be visible and editable see GUI top section.
+- Show environment (animation) see `GUI top section` and let it run live for the method for which visiblity is activated in grid column animation.
+- Environment parameter configuration: all special params for selected animation should be visible and editable see `GUI top section`.
 - !!!Let agent use the environment (animation) and its rewards to learn with the selected methods!!!
-- OpenCV for environment rendering
+- Use OpenCV for environment rendering
 
 
 ### Learning Methods
-- Make required methods selectable (dropdown) and add a compare check (checkbox) to show all methods parallel in live plot
-- !!! All common parameters of selected methods should be visible and editable!!!
+- !!! All common parameters of selected methods should be visible and editable !!!
 - !!! All special parameters of selected method should be visible and editable!!! 
 - !!! In compare-mode all special parameters of each method should be visible and editable!!!
 - For user input use grid with 3 columns
 - Make single method for compare mode selectable
 - Possibility to pause single method in compare mode
 
+
 ### Learning
 - !!! Make sure agents can reach every method!!!
 - !!! Make sure that environment and agent work together!!!
 - !!! Make sure that agent work together with the current method and makes learning progress!!!
+
 
 ### Neural Networks
 - !!!Use PyTorch-based neural networks (selectable MLP/CNN architecture)!!!
@@ -97,8 +115,8 @@
 - !!!Avoid loops, prefer numpy!!!
 - Use numpy arrays if possible
 - Make Activation Methods (relu, tanh ...) selectable
-- All common parameters of neural networks of the different algorithms should be visible and editable
-- Show special parameters of neural networks of selected method and make editable
+- All hyperparameters of neural networks for the different algorithms should be visible and editable
+
 
 ### Threading
 - Run different methods in separate threads
@@ -106,6 +124,7 @@
 - Non-blocking GUI during automatic pathfinding
 - Show animation of current or latest selected method
 - Safe thread communication with tkinter and gym
+
 
 ## Tests
 - Create tests for each method

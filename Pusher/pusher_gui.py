@@ -39,8 +39,7 @@ class PusherGUI:
         # Training control
         self.training = False
         self.training_threads = {}
-        self.compare_mode = False
-        self.paused_methods = set()
+        self.paused_rows = set()
 
         # Plot stats per run label
         self.method_stats = {}
@@ -57,6 +56,8 @@ class PusherGUI:
 
         # Live grid
         self.grid_rows = {}
+        self.grid_header_frame = None
+        self.grid_rows_frame = None
 
         self._create_widgets()
         self._setup_plot()
@@ -69,12 +70,16 @@ class PusherGUI:
         }
         return colors.get(method_name, "#95afc0")
 
+    def _method_order(self):
+        preferred = ["DDPG", "TD3", "SAC"]
+        return [name for name in preferred if name in self.policies]
+
     def _create_widgets(self):
         main_frame = tk.Frame(self.root, bg=self.bg_color)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         main_frame.grid_rowconfigure(0, weight=1)
-        main_frame.grid_rowconfigure(1, weight=1)
+        main_frame.grid_rowconfigure(1, weight=6)
         main_frame.grid_rowconfigure(2, weight=1)
         main_frame.grid_columnconfigure(0, weight=1)
 
@@ -132,8 +137,8 @@ class PusherGUI:
         # === MIDDLE SECTION (Controls) ===
         middle_frame = tk.Frame(main_frame, bg=self.bg_color)
         middle_frame.grid(row=1, column=0, sticky="nsew", pady=5)
-        middle_frame.grid_rowconfigure(0, weight=2)
-        middle_frame.grid_rowconfigure(1, weight=1)
+        middle_frame.grid_rowconfigure(0, weight=6, minsize=320)
+        middle_frame.grid_rowconfigure(1, weight=2, minsize=140)
         middle_frame.grid_columnconfigure(0, weight=1)
 
         upper_controls = tk.Frame(middle_frame, bg=self.bg_color)
@@ -141,24 +146,7 @@ class PusherGUI:
 
         lower_grid = tk.Frame(middle_frame, bg=self.bg_color)
         lower_grid.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
-
-        # Upper controls
-        method_frame = tk.LabelFrame(upper_controls, text="Method Selection", bg=self.bg_color, fg=self.fg_color)
-        method_frame.pack(fill=tk.X, pady=5)
-
-        method_select_row = tk.Frame(method_frame, bg=self.bg_color)
-        method_select_row.pack(fill=tk.X, padx=5, pady=5)
-
-        tk.Label(method_select_row, text="Algorithm:", bg=self.bg_color, fg=self.fg_color).pack(side=tk.LEFT)
-        self.method_var = tk.StringVar(value=list(self.policies.keys())[0])
-        ttk.Combobox(method_select_row, textvariable=self.method_var,
-                     values=list(self.policies.keys()), state="readonly",
-                     width=10).pack(side=tk.LEFT, padx=5)
-
-        self.compare_var = tk.BooleanVar(value=False)
-        tk.Checkbutton(method_select_row, text="Compare Mode",
-                       variable=self.compare_var, bg=self.bg_color, fg=self.fg_color,
-                       selectcolor=self.entry_bg, command=self._toggle_compare_mode).pack(side=tk.LEFT, padx=10)
+        lower_grid.grid_propagate(True)
 
         common_frame = tk.LabelFrame(upper_controls, text="Common Parameters", bg=self.bg_color, fg=self.fg_color)
         common_frame.pack(fill=tk.X, pady=5)
@@ -176,18 +164,21 @@ class PusherGUI:
         ]
 
         for idx, (label, key, default) in enumerate(common_params):
-            row = idx // 3
-            col = idx % 3
+            label_col = idx * 2
+            entry_col = idx * 2 + 1
             tk.Label(params_grid, text=label + ":", bg=self.bg_color, fg=self.fg_color).grid(
-                row=row * 2, column=col, sticky="w", padx=2, pady=2
+                row=0, column=label_col, sticky="w", padx=2, pady=2
             )
             var = tk.StringVar(value=default)
             self.param_vars[key] = var
             tk.Entry(params_grid, textvariable=var, bg=self.entry_bg, fg=self.fg_color,
-                     width=12).grid(row=row * 2 + 1, column=col, padx=2, pady=2)
+                     width=12).grid(row=0, column=entry_col, padx=2, pady=6,
+                                    ipady=6)
 
         notebook_frame = tk.LabelFrame(upper_controls, text="Method Parameters", bg=self.bg_color, fg=self.fg_color)
         notebook_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        notebook_frame.configure(height=420)
+        notebook_frame.pack_propagate(False)
 
         self.notebook = ttk.Notebook(notebook_frame)
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
@@ -226,18 +217,28 @@ class PusherGUI:
         self.plot_canvas_frame = tk.Frame(plot_frame, bg=self.bg_color)
         self.plot_canvas_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Status
-        status_frame = tk.LabelFrame(bottom_frame, text="Status", bg=self.bg_color, fg=self.fg_color)
-        status_frame.grid(row=2, column=0, sticky="nsew", padx=5, pady=5)
-
-        self.status_text = tk.Text(status_frame, height=4, bg=self.entry_bg,
-                                   fg=self.fg_color, wrap=tk.WORD)
-        self.status_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.status_text = None
 
     def _create_method_tabs(self):
         for method in self.policies.keys():
             tab = tk.Frame(self.notebook, bg=self.bg_color)
             self.notebook.add(tab, text=method)
+
+            tab_canvas = tk.Canvas(tab, bg=self.bg_color, highlightthickness=0)
+            tab_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+            tab_scrollbar = tk.Scrollbar(tab, orient="vertical", command=tab_canvas.yview)
+            tab_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+            tab_canvas.configure(yscrollcommand=tab_scrollbar.set)
+
+            scroll_frame = tk.Frame(tab_canvas, bg=self.bg_color)
+            tab_canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
+
+            scroll_frame.bind(
+                "<Configure>",
+                lambda e, canvas=tab_canvas: canvas.configure(scrollregion=canvas.bbox("all"))
+            )
 
             params = []
             if method == "DDPG":
@@ -282,7 +283,7 @@ class PusherGUI:
                     ("Gamma Step", "gamma_step", "0.0")
                 ]
 
-            grid = tk.Frame(tab, bg=self.bg_color)
+            grid = tk.Frame(scroll_frame, bg=self.bg_color)
             grid.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
             for idx, (label, key, default) in enumerate(params):
@@ -295,63 +296,157 @@ class PusherGUI:
                 if param_key not in self.param_vars:
                     self.param_vars[param_key] = tk.StringVar(value=default)
                 tk.Entry(grid, textvariable=self.param_vars[param_key], bg=self.entry_bg,
-                         fg=self.fg_color, width=12).grid(row=row * 2 + 1, column=col, padx=2, pady=2)
+                         fg=self.fg_color, width=12).grid(row=row * 2 + 1, column=col, padx=2, pady=10,
+                                                         ipady=10)
 
     def _create_live_grid(self, parent):
         headers = [
-            "Active", "Method", "Value", "Episode/Total", "Step",
-            "Moving Avg", "Reward", "Duration", "Pause", "Animation"
+            "Active", "Method", "Param", "Value", "Episode/Total", "Step",
+            "Reward", "Moving Avg", "Duration", "Pause", "Animation"
         ]
-        header_frame = tk.Frame(parent, bg=self.bg_color)
-        header_frame.pack(fill=tk.X, padx=5, pady=2)
+        col_mins = [60, 120, 110, 110, 120, 70, 80, 110, 110, 80, 100]
+        scrollbar_width = 16
+
+        grid_container = tk.Frame(parent, bg=self.bg_color)
+        grid_container.pack(fill=tk.BOTH, expand=True, padx=5, pady=2)
+        grid_container.grid_rowconfigure(1, weight=1)
+        grid_container.grid_columnconfigure(0, weight=1)
+
+        self.grid_header_frame = tk.Frame(grid_container, bg=self.bg_color)
+        self.grid_header_frame.grid(row=0, column=0, sticky="nsew")
+
+        for col in range(len(headers)):
+            min_size = col_mins[col] if col < len(col_mins) else 80
+            self.grid_header_frame.grid_columnconfigure(col, weight=1, uniform="grid", minsize=min_size)
+        self.grid_header_frame.grid_columnconfigure(len(headers), weight=0, minsize=scrollbar_width)
 
         for idx, title in enumerate(headers):
-            tk.Label(header_frame, text=title, bg=self.bg_color, fg=self.fg_color, width=12).grid(
-                row=0, column=idx, padx=2
+            tk.Label(self.grid_header_frame, text=title, bg=self.bg_color,
+                     fg=self.fg_color).grid(row=0, column=idx, padx=2, pady=1, sticky="nsew")
+        tk.Frame(self.grid_header_frame, bg=self.bg_color, width=scrollbar_width).grid(
+            row=0, column=len(headers), sticky="nsew"
+        )
+
+        grid_body = tk.Frame(grid_container, bg=self.bg_color)
+        grid_body.grid(row=1, column=0, sticky="nsew")
+        grid_body.grid_columnconfigure(0, weight=1)
+        grid_body.grid_rowconfigure(0, weight=1)
+
+        self.grid_canvas = tk.Canvas(grid_body, bg=self.bg_color, highlightthickness=0)
+        self.grid_canvas.grid(row=0, column=0, sticky="nsew")
+
+        scrollbar = tk.Scrollbar(grid_body, orient="vertical", command=self.grid_canvas.yview)
+        scrollbar.grid(row=0, column=1, sticky="ns")
+
+        self.grid_canvas.configure(yscrollcommand=scrollbar.set)
+
+        self.grid_rows_frame = tk.Frame(self.grid_canvas, bg=self.bg_color)
+        self.grid_rows_window = self.grid_canvas.create_window(
+            (0, 0), window=self.grid_rows_frame, anchor="nw"
+        )
+
+        self.grid_rows_frame.bind(
+            "<Configure>",
+            lambda e: self.grid_canvas.configure(scrollregion=self.grid_canvas.bbox("all"))
+        )
+
+        self.grid_canvas.bind(
+            "<Configure>",
+            lambda e: self._sync_grid_width(e.width)
+        )
+
+        for col in range(len(headers)):
+            min_size = col_mins[col] if col < len(col_mins) else 80
+            self.grid_rows_frame.grid_columnconfigure(col, weight=1, uniform="grid", minsize=min_size)
+
+        self._build_live_grid_rows(self._base_grid_defs())
+
+    def _sync_grid_width(self, canvas_width):
+        if canvas_width <= 0:
+            return
+        self.grid_canvas.itemconfigure(self.grid_rows_window, width=canvas_width)
+        self.grid_header_frame.configure(width=canvas_width)
+
+    def _base_grid_defs(self):
+        base_methods = self._method_order()
+        return [
+            {
+                "row_key": method,
+                "method": method,
+                "param": "",
+                "value": "",
+                "is_base": True,
+                "active": idx == 0
+            }
+            for idx, method in enumerate(base_methods)
+        ]
+
+    def _clear_live_grid_rows(self):
+        for widget in self.grid_rows_frame.winfo_children():
+            widget.destroy()
+        self.grid_rows = {}
+
+    def _build_live_grid_rows(self, row_defs):
+        self._clear_live_grid_rows()
+
+        for row_idx, row_def in enumerate(row_defs):
+            row_key = row_def["row_key"]
+            method = row_def["method"]
+            param_name = row_def.get("param", "")
+            param_value = row_def.get("value", "")
+            is_base = row_def.get("is_base", False)
+            is_active = row_def.get("active", False)
+
+            row = {
+                "row_key": row_key,
+                "method": method,
+                "param_var": tk.StringVar(value=param_name or "-"),
+                "value_var": tk.StringVar(value=param_value or "-"),
+                "episode_var": tk.StringVar(value="0/0"),
+                "step_var": tk.StringVar(value="0"),
+                "reward_var": tk.StringVar(value="0.0"),
+                "avg_var": tk.StringVar(value="0.0"),
+                "duration_var": tk.StringVar(value="00:00:00"),
+                "is_base": is_base
+            }
+
+            active_var = tk.BooleanVar(value=is_active if is_base else True)
+            row["active_var"] = active_var
+            active_btn = tk.Checkbutton(self.grid_rows_frame, variable=active_var, bg=self.bg_color,
+                                        fg=self.fg_color, selectcolor=self.entry_bg)
+            active_btn.grid(row=row_idx, column=0, padx=2, pady=1, sticky="nsew")
+            if not is_base:
+                active_btn.configure(state=tk.DISABLED)
+
+            tk.Label(self.grid_rows_frame, text=method, bg=self.bg_color, fg=self.fg_color).grid(
+                row=row_idx, column=1, padx=2, pady=1, sticky="nsew"
             )
+            tk.Label(self.grid_rows_frame, textvariable=row["param_var"], bg=self.bg_color,
+                     fg=self.fg_color).grid(row=row_idx, column=2, padx=2, pady=1, sticky="nsew")
+            tk.Label(self.grid_rows_frame, textvariable=row["value_var"], bg=self.bg_color,
+                     fg=self.fg_color).grid(row=row_idx, column=3, padx=2, pady=1, sticky="nsew")
+            tk.Label(self.grid_rows_frame, textvariable=row["episode_var"], bg=self.bg_color,
+                     fg=self.fg_color).grid(row=row_idx, column=4, padx=2, pady=1, sticky="nsew")
+            tk.Label(self.grid_rows_frame, textvariable=row["step_var"], bg=self.bg_color,
+                     fg=self.fg_color).grid(row=row_idx, column=5, padx=2, pady=1, sticky="nsew")
+            tk.Label(self.grid_rows_frame, textvariable=row["reward_var"], bg=self.bg_color,
+                     fg=self.fg_color).grid(row=row_idx, column=6, padx=2, pady=1, sticky="nsew")
+            tk.Label(self.grid_rows_frame, textvariable=row["avg_var"], bg=self.bg_color,
+                     fg=self.fg_color).grid(row=row_idx, column=7, padx=2, pady=1, sticky="nsew")
+            tk.Label(self.grid_rows_frame, textvariable=row["duration_var"], bg=self.bg_color,
+                     fg=self.fg_color).grid(row=row_idx, column=8, padx=2, pady=1, sticky="nsew")
 
-        rows_frame = tk.Frame(parent, bg=self.bg_color)
-        rows_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=2)
-
-        for row_idx, method in enumerate(self.policies.keys()):
-            row = {}
-            row["active_var"] = tk.BooleanVar(value=False)
-            row["value_var"] = tk.StringVar(value="-")
-            row["episode_var"] = tk.StringVar(value="0/0")
-            row["step_var"] = tk.StringVar(value="0")
-            row["avg_var"] = tk.StringVar(value="0.0")
-            row["reward_var"] = tk.StringVar(value="0.0")
-            row["duration_var"] = tk.StringVar(value="0.0s")
-
-            tk.Checkbutton(rows_frame, variable=row["active_var"], bg=self.bg_color,
-                           fg=self.fg_color, selectcolor=self.entry_bg).grid(row=row_idx, column=0)
-            tk.Label(rows_frame, text=method, bg=self.bg_color, fg=self.fg_color, width=12).grid(
-                row=row_idx, column=1, padx=2
-            )
-            tk.Label(rows_frame, textvariable=row["value_var"], bg=self.bg_color,
-                     fg=self.fg_color, width=12).grid(row=row_idx, column=2, padx=2)
-            tk.Label(rows_frame, textvariable=row["episode_var"], bg=self.bg_color,
-                     fg=self.fg_color, width=12).grid(row=row_idx, column=3, padx=2)
-            tk.Label(rows_frame, textvariable=row["step_var"], bg=self.bg_color,
-                     fg=self.fg_color, width=10).grid(row=row_idx, column=4, padx=2)
-            tk.Label(rows_frame, textvariable=row["avg_var"], bg=self.bg_color,
-                     fg=self.fg_color, width=12).grid(row=row_idx, column=5, padx=2)
-            tk.Label(rows_frame, textvariable=row["reward_var"], bg=self.bg_color,
-                     fg=self.fg_color, width=10).grid(row=row_idx, column=6, padx=2)
-            tk.Label(rows_frame, textvariable=row["duration_var"], bg=self.bg_color,
-                     fg=self.fg_color, width=12).grid(row=row_idx, column=7, padx=2)
-
-            pause_btn = tk.Button(rows_frame, text="Pause", bg=self.button_bg, fg=self.fg_color,
-                                  width=10, command=lambda m=method: self._toggle_pause(m))
-            pause_btn.grid(row=row_idx, column=8, padx=2)
+            pause_btn = tk.Button(self.grid_rows_frame, text="Pause", bg=self.button_bg, fg=self.fg_color,
+                                  command=lambda key=row_key: self._toggle_pause(key))
+            pause_btn.grid(row=row_idx, column=9, padx=2, pady=1, sticky="nsew")
             row["pause_btn"] = pause_btn
 
-            tk.Radiobutton(rows_frame, variable=self.animation_method_var, value=method,
-                           bg=self.bg_color, fg=self.fg_color, selectcolor=self.entry_bg).grid(
-                row=row_idx, column=9, padx=2
-            )
+            anim_btn = tk.Radiobutton(self.grid_rows_frame, variable=self.animation_method_var, value=method,
+                                      bg=self.bg_color, fg=self.fg_color, selectcolor=self.entry_bg,
+                                      command=lambda m=method: self._activate_animation(m))
+            anim_btn.grid(row=row_idx, column=10, padx=2, pady=1, sticky="nsew")
 
-            self.grid_rows[method] = row
+            self.grid_rows[row_key] = row
 
     def _setup_plot(self):
         self.fig = Figure(figsize=(10, 4), facecolor="#2b2b2b")
@@ -371,11 +466,23 @@ class PusherGUI:
 
     def _toggle_animation(self):
         if self.show_animation.get():
+            self._set_env_render_mode("rgb_array")
             self._log_status("Animation enabled (restart training to apply).")
         else:
+            self._set_env_render_mode(None)
             if self.animation_canvas:
                 self.animation_canvas.delete("all")
             self._log_status("Animation disabled")
+
+    def _activate_animation(self, method_name):
+        self.animation_method_var.set(method_name)
+        if not self.show_animation.get():
+            self.show_animation.set(True)
+        self._toggle_animation()
+
+    def _set_env_render_mode(self, render_mode):
+        self.environment.render_mode = render_mode
+        self.environment.reset_env()
 
     def _update_animation_frame(self, frame):
         if frame is None or not self.show_animation.get():
@@ -420,16 +527,21 @@ class PusherGUI:
         except ValueError as exc:
             messagebox.showerror("Error", f"Invalid parameter value: {str(exc)}")
 
-    def _toggle_compare_mode(self):
-        self.compare_mode = self.compare_var.get()
+    def _get_selected_methods(self):
+        base_rows = [row for row in self.grid_rows.values() if row.get("is_base")]
+        selected = [row["method"] for row in base_rows if row["active_var"].get()]
+        if selected:
+            return selected
+        ordered = self._method_order()
+        return [ordered[0]] if ordered else []
 
-    def _toggle_pause(self, method_name):
-        if method_name in self.paused_methods:
-            self.paused_methods.remove(method_name)
-            self.grid_rows[method_name]["pause_btn"].config(text="Pause")
+    def _toggle_pause(self, row_key):
+        if row_key in self.paused_rows:
+            self.paused_rows.remove(row_key)
+            self.grid_rows[row_key]["pause_btn"].config(text="Pause")
         else:
-            self.paused_methods.add(method_name)
-            self.grid_rows[method_name]["pause_btn"].config(text="Resume")
+            self.paused_rows.add(row_key)
+            self.grid_rows[row_key]["pause_btn"].config(text="Resume")
 
     def _parse_range(self, prefix, is_int=False):
         from_var = self.param_vars.get(f"SAC_{prefix}_from")
@@ -454,6 +566,76 @@ class PusherGUI:
         if is_int:
             values = [int(round(v)) for v in values]
         return values
+
+    def _format_duration(self, seconds):
+        total = int(seconds)
+        hours = total // 3600
+        minutes = (total % 3600) // 60
+        secs = total % 60
+        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+
+    def _get_range_overrides(self, method_name):
+        if method_name != "SAC":
+            return [{"label": "default"}], None
+
+        alpha_values = self._parse_range("alpha")
+        buffer_values = self._parse_range("buffer", is_int=True)
+        gamma_values = self._parse_range("gamma")
+
+        candidates = [
+            ("alpha", alpha_values),
+            ("buffer", buffer_values),
+            ("gamma", gamma_values)
+        ]
+        selected = [(name, values) for name, values in candidates if values]
+
+        if len(selected) > 1:
+            self._log_status("Multiple parameter ranges set; using the first one only.")
+
+        if not selected:
+            return [{"label": "default"}], None
+
+        param_name, values = selected[0]
+        overrides = []
+        for val in values:
+            if param_name == "alpha":
+                overrides.append({"alpha": float(val), "label": f"{val}"})
+            elif param_name == "buffer":
+                overrides.append({"buffer_size": int(val), "label": f"{val}"})
+            else:
+                overrides.append({"gamma": float(val), "label": f"{val}"})
+
+        return overrides, param_name
+
+    def _build_training_grid_defs(self, selected_methods):
+        row_defs = []
+        for method in self._method_order():
+            row_defs.append({
+                "row_key": method,
+                "method": method,
+                "param": "",
+                "value": "",
+                "is_base": True,
+                "active": method in selected_methods
+            })
+
+        for method in selected_methods:
+            overrides, param_name = self._get_range_overrides(method)
+            if param_name is None:
+                continue
+
+            for override in overrides:
+                label = override.get("label", "")
+                run_label = f"{method} ({param_name}={label})"
+                row_defs.append({
+                    "row_key": run_label,
+                    "method": method,
+                    "param": param_name,
+                    "value": label,
+                    "is_base": False
+                })
+
+        return row_defs
 
     def _get_common_params(self):
         return {
@@ -516,13 +698,8 @@ class PusherGUI:
     def _reset_training(self):
         self._stop_training()
         self.method_stats = {}
-        for method in self.grid_rows.values():
-            method["value_var"].set("-")
-            method["episode_var"].set("0/0")
-            method["step_var"].set("0")
-            method["avg_var"].set("0.0")
-            method["reward_var"].set("0.0")
-            method["duration_var"].set("0.0s")
+        self.paused_rows.clear()
+        self._build_live_grid_rows(self._base_grid_defs())
         self.agent.reset_stats()
         self._update_plot()
         self._log_status("Training reset")
@@ -532,19 +709,25 @@ class PusherGUI:
             messagebox.showwarning("Warning", "Training already in progress")
             return
 
-        self.training = True
-        methods = []
-        if self.compare_mode:
-            methods = [name for name, row in self.grid_rows.items() if row["active_var"].get()]
-            if not methods:
-                messagebox.showwarning("Warning", "No methods selected in the live grid")
-                self.training = False
-                return
-        else:
-            methods = [self.method_var.get()]
-            self.grid_rows[methods[0]]["active_var"].set(True)
+        selected_methods = self._get_selected_methods()
+        if not selected_methods:
+            messagebox.showwarning("Warning", "No methods available to train")
+            return
 
-        for method_name in methods:
+        if self.animation_method_var.get() in selected_methods and not self.show_animation.get():
+            self.show_animation.set(True)
+            self._toggle_animation()
+
+        if self.show_animation.get() and self.animation_method_var.get() not in selected_methods:
+            self.animation_method_var.set(selected_methods[0])
+            self._log_status("Animation method updated to match selected training method.")
+
+        row_defs = self._build_training_grid_defs(selected_methods)
+        self._build_live_grid_rows(row_defs)
+
+        self.training = True
+
+        for method_name in selected_methods:
             thread = threading.Thread(target=self._train_method, args=(method_name,))
             thread.daemon = True
             self.training_threads[method_name] = thread
@@ -566,41 +749,7 @@ class PusherGUI:
             policy_class = self.policies[method_name]
             base_params = self._get_method_params(method_name)
 
-            range_overrides = [({"label": "default"})]
-
-            if method_name == "SAC":
-                alpha_values = self._parse_range("alpha")
-                buffer_values = self._parse_range("buffer", is_int=True)
-                gamma_values = self._parse_range("gamma")
-
-                if alpha_values:
-                    range_overrides = []
-                    for val in alpha_values:
-                        range_overrides.append({"alpha": float(val), "label": f"alpha={val:.3g}"})
-                if buffer_values:
-                    new_overrides = []
-                    for base in range_overrides:
-                        for val in buffer_values:
-                            label = f"{base.get('label', 'default')},buffer={val}"
-                            new = dict(base)
-                            new["buffer_size"] = int(val)
-                            new["label"] = label
-                            new_overrides.append(new)
-                    range_overrides = new_overrides
-                if gamma_values:
-                    new_overrides = []
-                    for base in range_overrides:
-                        for val in gamma_values:
-                            label = f"{base.get('label', 'default')},gamma={val:.3g}"
-                            new = dict(base)
-                            new["gamma"] = float(val)
-                            new["label"] = label
-                            new_overrides.append(new)
-                    range_overrides = new_overrides
-
-            if len(range_overrides) > 20:
-                range_overrides = range_overrides[:20]
-                self._log_status(f"Too many range combinations for {method_name}; limiting to 20.")
+            range_overrides, range_param = self._get_range_overrides(method_name)
 
             for override in range_overrides:
                 if not self.training:
@@ -608,8 +757,18 @@ class PusherGUI:
 
                 label = override.get("label", "default")
                 label = label.replace("default,", "").replace("default", "").strip(",") or "default"
-                run_label = method_name if label == "default" else f"{method_name} ({label})"
-                self.grid_rows[method_name]["value_var"].set(label)
+
+                if range_param:
+                    run_label = f"{method_name} ({range_param}={label})"
+                else:
+                    run_label = method_name if label == "default" else f"{method_name} ({label})"
+
+                row_key = run_label
+
+                if method_name in self.grid_rows:
+                    base_row = self.grid_rows[method_name]
+                    base_row["param_var"].set(range_param or "-")
+                    base_row["value_var"].set("-" if label == "default" else label)
 
                 params = dict(base_params)
                 params.update({k: v for k, v in override.items() if k != "label"})
@@ -633,7 +792,7 @@ class PusherGUI:
                     if not self.training:
                         break
 
-                    while method_name in self.paused_methods and self.training:
+                    while row_key in self.paused_rows and self.training:
                         time.sleep(0.1)
 
                     render = self.show_animation.get() and self.animation_method_var.get() == method_name
@@ -647,7 +806,9 @@ class PusherGUI:
                     avg_reward = np.mean(returns[-10:]) if len(returns) >= 10 else np.mean(returns)
                     duration = time.time() - start_time
 
-                    self._update_grid(method_name, episode + 1, episodes, steps, avg_reward, reward, duration)
+                    self._update_grid(row_key, episode + 1, episodes, steps, avg_reward, reward, duration)
+                    if row_key != method_name:
+                        self._update_grid(method_name, episode + 1, episodes, steps, avg_reward, reward, duration)
 
                     if episode < 20 or episode % 5 == 0 or episode == episodes - 1:
                         self.root.after(0, self._update_plot)
@@ -664,14 +825,16 @@ class PusherGUI:
             if len(self.training_threads) == 0:
                 self.training = False
 
-    def _update_grid(self, method_name, episode, episodes, steps, avg_reward, reward, duration):
+    def _update_grid(self, row_key, episode, episodes, steps, avg_reward, reward, duration):
         def update():
-            row = self.grid_rows[method_name]
+            if row_key not in self.grid_rows:
+                return
+            row = self.grid_rows[row_key]
             row["episode_var"].set(f"{episode}/{episodes}")
             row["step_var"].set(str(steps))
             row["avg_var"].set(f"{avg_reward:.2f}")
             row["reward_var"].set(f"{reward:.2f}")
-            row["duration_var"].set(f"{duration:.1f}s")
+            row["duration_var"].set(self._format_duration(duration))
 
         if threading.current_thread() == threading.main_thread():
             update()
@@ -683,7 +846,11 @@ class PusherGUI:
             messagebox.showwarning("Warning", "Stop training before running a single episode.")
             return
 
-        method_name = self.method_var.get()
+        selected_methods = self._get_selected_methods()
+        if not selected_methods:
+            messagebox.showwarning("Warning", "No methods available to run")
+            return
+        method_name = selected_methods[0]
         params = self._get_method_params(method_name)
         policy_class = self.policies[method_name]
         self.agent.set_policy(policy_class(**params))
@@ -742,23 +909,26 @@ class PusherGUI:
 
     def _save_plot(self):
         timestamp = time.strftime("%Y%m%d_%H%M%S")
-        method_name = self.method_var.get()
-        value_label = self.grid_rows[method_name]["value_var"].get().replace(" ", "_")
-        value_part = "" if value_label in ("-", "default") else f"_{value_label}"
+        selected_methods = self._get_selected_methods()
+        if not selected_methods:
+            messagebox.showwarning("Warning", "No methods available to save")
+            return
+        method_name = selected_methods[0]
+        value_label = ""
+        base_row = self.grid_rows.get(method_name)
+        if base_row:
+            param = base_row["param_var"].get()
+            value = base_row["value_var"].get()
+            if param not in ("-", "") and value not in ("-", "default", ""):
+                value_label = f"{param}={value}"
+        value_part = "" if not value_label else f"_{value_label.replace(' ', '_')}"
         filename = f"pusher_plot_{method_name}{value_part}_{timestamp}.png"
         self.fig.savefig(filename, facecolor="#2b2b2b", edgecolor="white")
         self._log_status(f"Plot saved to {filename}")
         messagebox.showinfo("Success", f"Plot saved to {filename}")
 
     def _log_status(self, message):
-        def update():
-            self.status_text.insert(tk.END, message + "\n")
-            self.status_text.see(tk.END)
-
-        if threading.current_thread() == threading.main_thread():
-            update()
-        else:
-            self.root.after(0, update)
+        print(message)
 
     def run(self):
         self.root.mainloop()
