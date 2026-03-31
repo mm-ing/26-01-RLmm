@@ -3,6 +3,9 @@
 ## Goal
 - implement a small experiment app for a 3-armed bandit problem using epsilon-greedy with decay, with both manual and agent-driven interaction via a Tkinter GUI.
 
+## Role
+- I am a solftware engineer who want to learn reinforcement learning
+
 ## Files to create
 - `bandits_app.py` — entrypoint: imports logic and GUI, starts the UI.
 - `bandit_logic.py` — core classes and functions:
@@ -36,7 +39,7 @@
     - Three buttons for manual selection: "Pull Bandit 1", "Pull Bandit 2", "Pull Bandit 3".
     - Button "Agent: single step" — agent selects and pulls once.
     - Button "Agent: run n loops" — run configured n loops.
-    - Dropdown "Method" to select epsilon greedy or thompson samling and let the agent know, which method to pick.
+    - Dropdown "Method" to select epsilon greedy or thompson samling and let the agent know, which method to pic.
     - Optional: button "Reset" to restart counts.
 
   - Displays:
